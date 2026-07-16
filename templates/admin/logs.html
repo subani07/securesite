@@ -1,0 +1,110 @@
+{% extends "base.html" %}
+{% block title %}Security Logs{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>📋 Security Logs</h1>
+      <p>Login attempts and system activity audit trail</p>
+    </div>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost btn-sm">← Admin Home</a>
+  </div>
+
+  <!-- Login Logs -->
+  <div class="dash-card">
+    <div class="dash-card-header">
+      <h2>Login Attempt Log</h2>
+      <div class="log-filters">
+        <a href="{{ url_for('admin.logs') }}" class="filter-btn {{ 'active' if not status_filter }}">All</a>
+        <a href="{{ url_for('admin.logs', status='SUCCESS') }}" class="filter-btn log-success {{ 'active' if status_filter == 'SUCCESS' }}">SUCCESS</a>
+        <a href="{{ url_for('admin.logs', status='FAILED') }}"  class="filter-btn log-failed  {{ 'active' if status_filter == 'FAILED'  }}">FAILED</a>
+        <a href="{{ url_for('admin.logs', status='LOCKED') }}"  class="filter-btn log-locked  {{ 'active' if status_filter == 'LOCKED'  }}">LOCKED</a>
+        <a href="{{ url_for('admin.logs', status='OAUTH') }}"   class="filter-btn log-oauth   {{ 'active' if status_filter == 'OAUTH'   }}">OAUTH</a>
+      </div>
+    </div>
+
+    {% if login_logs.items %}
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Username</th>
+            <th>IP Address</th>
+            <th>Status</th>
+            <th>Details</th>
+            <th>User Agent</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for log in login_logs.items %}
+          <tr>
+            <td class="mono">{{ log.login_time.strftime('%d %b %Y %H:%M:%S') }}</td>
+            <td><strong>{{ log.username_attempted }}</strong></td>
+            <td class="mono">{{ log.ip_address }}</td>
+            <td><span class="log-status-badge log-{{ log.status | lower }}">{{ log.status }}</span></td>
+            <td class="detail-cell">{{ log.details or '—' }}</td>
+            <td class="text-muted agent-cell">{{ (log.user_agent or '—')[:60] }}{% if log.user_agent and log.user_agent|length > 60 %}…{% endif %}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Pagination -->
+    {% if login_logs.pages > 1 %}
+    <div class="pagination">
+      {% if login_logs.has_prev %}
+        <a href="{{ url_for('admin.logs', page=login_logs.prev_num, status=status_filter) }}" class="page-btn">← Prev</a>
+      {% endif %}
+      {% for pg in login_logs.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+        {% if pg %}
+          <a href="{{ url_for('admin.logs', page=pg, status=status_filter) }}"
+             class="page-btn {{ 'active' if pg == login_logs.page }}">{{ pg }}</a>
+        {% else %}
+          <span class="page-ellipsis">…</span>
+        {% endif %}
+      {% endfor %}
+      {% if login_logs.has_next %}
+        <a href="{{ url_for('admin.logs', page=login_logs.next_num, status=status_filter) }}" class="page-btn">Next →</a>
+      {% endif %}
+    </div>
+    {% endif %}
+
+    {% else %}
+      <div class="empty-state"><span>📭</span><p>No login logs found.</p></div>
+    {% endif %}
+  </div>
+
+  <!-- Activity Log -->
+  <div class="dash-card" style="margin-top:2rem">
+    <div class="dash-card-header">
+      <h2>User Activity Log</h2>
+      <span class="count-badge">Last 50</span>
+    </div>
+    {% if activity_logs %}
+    <div class="table-scroll">
+      <table class="data-table">
+        <thead>
+          <tr><th>Time</th><th>User ID</th><th>Action</th><th>Details</th><th>IP</th></tr>
+        </thead>
+        <tbody>
+          {% for act in activity_logs %}
+          <tr>
+            <td class="mono">{{ act.timestamp.strftime('%d %b %H:%M:%S') }}</td>
+            <td class="mono">{{ act.user_id or '—' }}</td>
+            <td><span class="action-tag">{{ act.action }}</span></td>
+            <td class="detail-cell">{{ act.details or '—' }}</td>
+            <td class="mono">{{ act.ip_address or '—' }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty-state"><span>📭</span><p>No activity logs recorded yet.</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

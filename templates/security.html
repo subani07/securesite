@@ -1,0 +1,247 @@
+{% extends "base.html" %}
+{% block title %}Security Settings{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Security Settings</h1>
+      <p>Manage your password, tokens, and security options</p>
+    </div>
+  </div>
+
+  <div class="security-grid">
+    <!-- Change Password -->
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <h2>🔑 Change Password</h2>
+      </div>
+      {% if user.oauth_provider and not user.password_hash %}
+        <div class="info-box">
+          <span>ℹ</span> Your account uses <strong>{{ user.oauth_provider | capitalize }} OAuth</strong>.
+          Password authentication is not available for OAuth-only accounts.
+        </div>
+      {% else %}
+      <form method="POST" action="{{ url_for('dashboard.security_settings') }}" class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <input type="hidden" name="action" value="change_password"/>
+
+        <div class="form-group">
+          <label for="current_password">Current Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="current_password" name="current_password"
+                   placeholder="Your current password" required class="form-input"/>
+            <button type="button" class="toggle-pw" onclick="togglePassword('current_password')">👁</button>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="new_password">New Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔑</span>
+            <input type="password" id="new_password" name="new_password"
+                   placeholder="Strong new password" required class="form-input"
+                   oninput="checkPasswordStrength(this.value)"/>
+            <button type="button" class="toggle-pw" onclick="togglePassword('new_password')">👁</button>
+          </div>
+          <div class="strength-meter">
+            <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+            <span class="strength-label" id="strengthLabel">Enter a password</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="confirm_password">Confirm New Password</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔐</span>
+            <input type="password" id="confirm_password" name="confirm_password"
+                   placeholder="Repeat new password" required class="form-input"
+                   oninput="checkPasswordMatch()"/>
+          </div>
+          <span class="match-hint" id="matchHint"></span>
+        </div>
+
+        <button type="submit" class="btn btn-primary">Update Password</button>
+      </form>
+      {% endif %}
+    </div>
+
+    <!-- JWT Token Demo -->
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <h2>🪙 JWT Access Token</h2>
+      </div>
+      <p class="card-desc">Your current JWT access token for API authentication. Use this as a <code>Bearer</code> token in API requests.</p>
+      <div class="jwt-display">
+        <div class="jwt-parts">
+          {% set parts = demo_jwt.split('.') %}
+          <span class="jwt-header">{{ parts[0] }}</span><span class="jwt-dot">.</span><span class="jwt-payload">{{ parts[1] }}</span><span class="jwt-dot">.</span><span class="jwt-sig">{{ parts[2] }}</span>
+        </div>
+      </div>
+      <button class="btn btn-outline btn-sm" onclick="copyJWT()">📋 Copy Token</button>
+      <textarea id="jwtFull" style="opacity:0;position:absolute;pointer-events:none">{{ demo_jwt }}</textarea>
+
+      <div class="jwt-decoded" id="jwtDecoded">
+        <div class="dash-card-header" style="margin-top:1rem"><h3>Decoded Payload</h3></div>
+        <pre class="code-block" id="jwtPayloadDisplay">Loading...</pre>
+      </div>
+    </div>
+
+    <!-- Account Info -->
+    <div class="dash-card">
+      <div class="dash-card-header"><h2>🔐 Account Security</h2></div>
+      <div class="security-info-list">
+        <div class="sec-info-row">
+          <span class="sec-key">Account Status</span>
+          <span class="sec-val {{ 'val-ok' if not user.is_locked else 'val-bad' }}">
+            {{ '✓ Active' if not user.is_locked else '🔒 Locked' }}
+          </span>
+        </div>
+        <div class="sec-info-row">
+          <span class="sec-key">Auth Method</span>
+          <span class="sec-val val-ok">{{ user.oauth_provider | capitalize if user.oauth_provider else 'Password + Session' }}</span>
+        </div>
+        <div class="sec-info-row">
+          <span class="sec-key">Failed Attempts</span>
+          <span class="sec-val {{ 'val-warn' if user.failed_attempts > 0 else 'val-ok' }}">{{ user.failed_attempts }}</span>
+        </div>
+        <div class="sec-info-row">
+          <span class="sec-key">Role</span>
+          <span class="sec-val"><span class="role-badge role-{{ user.role }}">{{ user.role | upper }}</span></span>
+        </div>
+        <div class="sec-info-row">
+          <span class="sec-key">Last Login</span>
+          <span class="sec-val">{{ user.last_login.strftime('%d %b %Y, %H:%M UTC') if user.last_login else 'N/A' }}</span>
+        </div>
+        <div class="sec-info-row">
+          <span class="sec-key">Member Since</span>
+          <span class="sec-val">{{ user.created_at.strftime('%d %b %Y') }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- OWASP Playground -->
+    <div class="dash-card dash-card-wide">
+      <div class="dash-card-header">
+        <h2>🧪 Security Playground</h2>
+        <span class="badge-new">Demo</span>
+      </div>
+      <p class="card-desc">Interactively test OWASP vulnerability mitigations — SQL injection and XSS — to see secure vs vulnerable outputs side by side.</p>
+      <div class="playground-tabs">
+        <button class="tab-btn active" onclick="showTab('sqli')">SQL Injection</button>
+        <button class="tab-btn" onclick="showTab('xss')">XSS</button>
+      </div>
+
+      <!-- SQL Injection Tab -->
+      <div class="tab-content active" id="tab-sqli">
+        <div class="playground-input-row">
+          <input type="text" id="sqliInput" class="form-input" placeholder="Try: ' OR '1'='1" value="' OR '1'='1"/>
+          <button class="btn btn-primary btn-sm" onclick="runSQLi()">Run Test</button>
+        </div>
+        <div class="playground-results" id="sqliResults" style="display:none">
+          <div class="result-col">
+            <div class="result-header result-vuln">⚠ Vulnerable Query</div>
+            <pre class="code-block" id="sqliVulnQuery"></pre>
+            <div class="result-data" id="sqliVulnData"></div>
+          </div>
+          <div class="result-col">
+            <div class="result-header result-safe">✓ Parameterised Query</div>
+            <pre class="code-block" id="sqliSafeQuery"></pre>
+            <div class="result-data" id="sqliSafeData"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- XSS Tab -->
+      <div class="tab-content" id="tab-xss">
+        <div class="playground-input-row">
+          <input type="text" id="xssInput" class="form-input" placeholder="Try: &lt;script&gt;alert('XSS')&lt;/script&gt;" value="<script>alert('XSS Attack!')</script>"/>
+          <button class="btn btn-primary btn-sm" onclick="runXSS()">Run Test</button>
+        </div>
+        <div class="playground-results" id="xssResults" style="display:none">
+          <div class="result-col">
+            <div class="result-header result-vuln">⚠ Vulnerable Output</div>
+            <div class="sandbox-output" id="xssVulnOutput"></div>
+          </div>
+          <div class="result-col">
+            <div class="result-header result-safe">✓ Escaped Output</div>
+            <div class="sandbox-output" id="xssSafeOutput"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+<script>
+// ── JWT Decoder ────────────────────────────────────────────────────────────────
+function b64DecodeUnicode(str) {
+  try {
+    return JSON.parse(decodeURIComponent(atob(str.replace(/-/g, '+').replace(/_/g, '/'))
+      .split('').map(c => '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)).join('')));
+  } catch { return {}; }
+}
+const jwtFull = document.getElementById('jwtFull').value.trim();
+const parts = jwtFull.split('.');
+if (parts.length === 3) {
+  const payload = b64DecodeUnicode(parts[1]);
+  document.getElementById('jwtPayloadDisplay').textContent = JSON.stringify(payload, null, 2);
+}
+
+function copyJWT() {
+  navigator.clipboard.writeText(jwtFull).then(() => {
+    showToast('JWT token copied!', 'success');
+  });
+}
+
+// ── Playground Tabs ──────────────────────────────────────────────────────────
+function showTab(tab) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  event.target.classList.add('active');
+}
+
+// ── SQL Injection Demo ────────────────────────────────────────────────────────
+async function runSQLi() {
+  const input = document.getElementById('sqliInput').value;
+  const res = await fetch('/api/playground/sql-inject', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({input})
+  });
+  const data = await res.json();
+  document.getElementById('sqliVulnQuery').textContent = data.vulnerable_query;
+  document.getElementById('sqliVulnData').textContent =
+    `Rows returned: ${data.vulnerable_results.length}\n` +
+    JSON.stringify(data.vulnerable_results, null, 2);
+  document.getElementById('sqliSafeQuery').textContent = data.secure_query;
+  document.getElementById('sqliSafeData').textContent =
+    `Rows returned: ${data.secure_results.length}\n` +
+    JSON.stringify(data.secure_results, null, 2);
+  document.getElementById('sqliResults').style.display = 'grid';
+}
+
+// ── XSS Demo ─────────────────────────────────────────────────────────────────
+async function runXSS() {
+  const input = document.getElementById('xssInput').value;
+  const res = await fetch('/api/playground/xss-sanitize', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({input})
+  });
+  const data = await res.json();
+  // Vulnerable: actually inject into DOM to show XSS would execute
+  document.getElementById('xssVulnOutput').innerHTML =
+    `<div class="xss-warn">⚠ If rendered: <code>${escapeHTML(data.vulnerable_output)}</code> would execute JS!</div>`;
+  document.getElementById('xssSafeOutput').textContent = data.secure_output;
+  document.getElementById('xssResults').style.display = 'grid';
+}
+
+function escapeHTML(str) {
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+</script>
+{% endblock %}

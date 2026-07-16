@@ -1,0 +1,168 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <!-- Page Header -->
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>Dashboard</h1>
+      <p>Welcome back, <strong>{{ user.name }}</strong> 👋</p>
+    </div>
+    <div class="page-header-right">
+      <span class="role-badge role-{{ user.role }}">{{ user.role | upper }}</span>
+      {% if user.last_login %}
+        <span class="last-login">Last login: {{ user.last_login.strftime('%d %b %Y, %H:%M') }} UTC</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Stats Row -->
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="stat-card-icon">👤</div>
+      <div class="stat-card-info">
+        <span class="stat-card-num">{{ user.username }}</span>
+        <span class="stat-card-label">Username</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">🛡️</div>
+      <div class="stat-card-info">
+        <span class="stat-card-num">{{ 'Active' if not user.is_locked else 'Locked' }}</span>
+        <span class="stat-card-label">Account Status</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">🔐</div>
+      <div class="stat-card-info">
+        <span class="stat-card-num">{{ user.oauth_provider | capitalize if user.oauth_provider else 'Password' }}</span>
+        <span class="stat-card-label">Auth Method</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">📅</div>
+      <div class="stat-card-info">
+        <span class="stat-card-num">{{ user.created_at.strftime('%d %b %Y') }}</span>
+        <span class="stat-card-label">Member Since</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="dashboard-grid">
+    <!-- Quick Actions -->
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <h2>Quick Actions</h2>
+      </div>
+      <div class="quick-actions">
+        <a href="{{ url_for('dashboard.profile') }}" class="quick-action">
+          <span class="qa-icon">✏️</span>
+          <span>Edit Profile</span>
+        </a>
+        <a href="{{ url_for('dashboard.security_settings') }}" class="quick-action">
+          <span class="qa-icon">🔑</span>
+          <span>Security Settings</span>
+        </a>
+        {% if user.role == 'admin' %}
+        <a href="{{ url_for('admin.dashboard') }}" class="quick-action">
+          <span class="qa-icon">⚙️</span>
+          <span>Admin Panel</span>
+        </a>
+        <a href="{{ url_for('admin.logs') }}" class="quick-action">
+          <span class="qa-icon">📋</span>
+          <span>Security Logs</span>
+        </a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Profile Summary -->
+    <div class="dash-card">
+      <div class="dash-card-header"><h2>Profile Summary</h2></div>
+      <div class="profile-summary">
+        <div class="profile-avatar-lg">
+          {% if user.profile_picture and not user.profile_picture.startswith('http') %}
+            <img src="{{ url_for('static', filename='uploads/' + user.profile_picture) }}" alt="Profile picture" class="avatar-img"/>
+          {% elif user.profile_picture and user.profile_picture.startswith('http') %}
+            <img src="{{ user.profile_picture }}" alt="Profile picture" class="avatar-img"/>
+          {% else %}
+            <div class="avatar-placeholder">{{ user.name[0] | upper }}</div>
+          {% endif %}
+        </div>
+        <div class="profile-info-list">
+          <div class="info-row"><span class="info-key">Name</span><span class="info-val">{{ user.name }}</span></div>
+          <div class="info-row"><span class="info-key">Email</span><span class="info-val">{{ user.email }}</span></div>
+          <div class="info-row"><span class="info-key">Role</span><span class="info-val"><span class="role-badge role-{{ user.role }}">{{ user.role }}</span></span></div>
+          {% if user.bio %}
+          <div class="info-row"><span class="info-key">Bio</span><span class="info-val">{{ user.bio }}</span></div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Recent Activity -->
+    <div class="dash-card dash-card-wide">
+      <div class="dash-card-header">
+        <h2>Recent Activity</h2>
+        {% if user.role == 'admin' %}
+          <a href="{{ url_for('admin.logs') }}" class="card-link">View all →</a>
+        {% endif %}
+      </div>
+      {% if activity %}
+      <div class="activity-list">
+        {% for act in activity %}
+        <div class="activity-item">
+          <div class="activity-dot"></div>
+          <div class="activity-info">
+            <span class="activity-action">{{ act.action.replace('_', ' ') | title }}</span>
+            {% if act.details %}<span class="activity-detail">{{ act.details }}</span>{% endif %}
+          </div>
+          <span class="activity-time">{{ act.timestamp.strftime('%d %b, %H:%M') }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="empty-state">
+        <span>📭</span>
+        <p>No recent activity recorded yet.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- JWT API Explorer -->
+    <div class="dash-card dash-card-wide">
+      <div class="dash-card-header">
+        <h2>🪙 JWT API Explorer</h2>
+        <a href="{{ url_for('dashboard.security_settings') }}" class="card-link">Get Token →</a>
+      </div>
+      <p class="card-desc">Test the JWT-protected REST API endpoints directly from your browser.</p>
+      <div class="api-endpoints">
+        <div class="api-ep">
+          <span class="method get">GET</span>
+          <code>/api/profile</code>
+          <span class="ep-desc">Returns your profile (JWT required)</span>
+        </div>
+        <div class="api-ep">
+          <span class="method put">PUT</span>
+          <code>/api/update-profile</code>
+          <span class="ep-desc">Update name/bio (JWT required)</span>
+        </div>
+        {% if user.role == 'admin' %}
+        <div class="api-ep">
+          <span class="method get">GET</span>
+          <code>/api/users</code>
+          <span class="ep-desc">List all users (Admin JWT required)</span>
+        </div>
+        {% endif %}
+        <div class="api-ep">
+          <span class="method post">POST</span>
+          <code>/api/token/refresh</code>
+          <span class="ep-desc">Refresh your access token</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

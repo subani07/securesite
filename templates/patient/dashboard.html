@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+{% block title %}Patient Dashboard{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>👋 Hello, {{ user.name }}</h1>
+      <p>Your health portal — view records, upload documents and manage appointments</p>
+    </div>
+    <div class="page-header-right">
+      <span class="role-badge role-patient">PATIENT</span>
+      {% if user.last_login %}<span class="last-login">Last login: {{ user.last_login.strftime('%d %b %Y, %H:%M') }}</span>{% endif %}
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card stat-card-primary">
+      <div class="stat-card-icon">📋</div>
+      <div class="stat-card-info"><span class="stat-card-num">{{ record_count }}</span><span class="stat-card-label">Medical Records</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">📁</div>
+      <div class="stat-card-info"><span class="stat-card-num">{{ upload_count }}</span><span class="stat-card-label">Uploaded Documents</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">📅</div>
+      <div class="stat-card-info"><span class="stat-card-num">{{ appt_count }}</span><span class="stat-card-label">Appointments</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">🩸</div>
+      <div class="stat-card-info"><span class="stat-card-num">{{ profile.blood_group or '—' }}</span><span class="stat-card-label">Blood Group</span></div>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- Assigned Doctor -->
+    <div class="dash-card">
+      <div class="dash-card-header"><h2>🩺 My Doctor</h2></div>
+      {% if doctor %}
+        <div class="doctor-card-inner">
+          <div class="avatar-placeholder" style="width:60px;height:60px;font-size:1.4rem">{{ doctor.name[0] }}</div>
+          <div>
+            <strong style="font-size:1rem">{{ doctor.name }}</strong>
+            {% if doctor_profile %}
+              <p style="margin:2px 0 0;font-size:0.85rem;color:var(--accent)">{{ doctor_profile.specialty }}</p>
+              {% if doctor_profile.department %}<p style="font-size:0.8rem;color:var(--text-muted)">{{ doctor_profile.department }}</p>{% endif %}
+            {% endif %}
+            <p style="font-size:0.8rem;color:var(--text-muted);margin-top:4px">{{ doctor.email }}</p>
+          </div>
+        </div>
+      {% else %}
+        <div class="empty-state"><span>🩺</span><p>No doctor assigned yet. Contact admin.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- Patient Info -->
+    <div class="dash-card">
+      <div class="dash-card-header"><h2>👤 My Profile</h2></div>
+      <div class="security-info-list">
+        <div class="sec-info-row"><span class="sec-key">Full Name</span><span class="sec-val">{{ user.name }}</span></div>
+        <div class="sec-info-row"><span class="sec-key">Date of Birth</span><span class="sec-val">{{ profile.dob or '—' }}</span></div>
+        <div class="sec-info-row"><span class="sec-key">Gender</span><span class="sec-val">{{ profile.gender or '—' }}</span></div>
+        <div class="sec-info-row"><span class="sec-key">Blood Group</span><span class="sec-val val-ok">{{ profile.blood_group or '—' }}</span></div>
+        <div class="sec-info-row"><span class="sec-key">Allergies</span><span class="sec-val {{ 'val-warn' if profile.allergies and profile.allergies != 'None known' }}">{{ profile.allergies or 'None known' }}</span></div>
+      </div>
+    </div>
+
+    <!-- Recent Records -->
+    <div class="dash-card dash-card-wide">
+      <div class="dash-card-header">
+        <h2>📋 Recent Medical Records</h2>
+        <a href="{{ url_for('patient.records') }}" class="card-link">View all →</a>
+      </div>
+      {% if recent_records %}
+        <div class="records-list">
+          {% for rec in recent_records %}
+          <div class="record-item">
+            <div class="record-icon">🔒</div>
+            <div class="record-info">
+              <strong>{{ decrypt(rec.diagnosis_enc) }}</strong>
+              <span class="activity-detail">{{ rec.created_at.strftime('%d %b %Y') }}</span>
+            </div>
+            <span class="badge" style="background:var(--accent-dim);color:var(--accent)">Encrypted</span>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state"><span>📋</span><p>No medical records yet.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- Upcoming Appointments -->
+    <div class="dash-card dash-card-wide">
+      <div class="dash-card-header">
+        <h2>📅 Upcoming Appointments</h2>
+        <a href="{{ url_for('patient.appointments') }}" class="card-link">Manage →</a>
+      </div>
+      {% if upcoming_appts %}
+        <table class="data-table">
+          <thead><tr><th>Date</th><th>Time</th><th>Doctor</th><th>Reason</th><th>Status</th></tr></thead>
+          <tbody>
+          {% for appt in upcoming_appts %}
+            <tr>
+              <td class="mono">{{ appt.scheduled_date }}</td>
+              <td class="mono">{{ appt.scheduled_time }}</td>
+              <td><strong>{{ appt.doctor.name }}</strong></td>
+              <td class="detail-cell">{{ appt.reason or '—' }}</td>
+              <td><span class="log-status-badge log-{{ appt.status }}">{{ appt.status | upper }}</span></td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      {% else %}
+        <div class="empty-state"><span>📅</span><p>No upcoming appointments. <a href="{{ url_for('patient.appointments') }}" class="form-link">Book one →</a></p></div>
+      {% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="dash-card">
+      <div class="dash-card-header"><h2>Quick Actions</h2></div>
+      <div class="quick-actions">
+        <a href="{{ url_for('patient.records') }}" class="quick-action"><span class="qa-icon">📋</span><span>View Records</span></a>
+        <a href="{{ url_for('patient.uploads') }}" class="quick-action"><span class="qa-icon">📁</span><span>Upload Document</span></a>
+        <a href="{{ url_for('patient.appointments') }}" class="quick-action"><span class="qa-icon">📅</span><span>Book Appointment</span></a>
+        <a href="{{ url_for('dashboard.security_settings') }}" class="quick-action"><span class="qa-icon">🔑</span><span>Security</span></a>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

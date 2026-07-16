@@ -1,0 +1,108 @@
+{% extends "base.html" %}
+{% block title %}My Documents{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>📁 My Documents</h1>
+      <p>Upload lab reports, scan results, prescriptions and other health documents</p>
+    </div>
+    <a href="{{ url_for('patient.dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
+  </div>
+
+  <!-- Upload Form -->
+  <div class="dash-card" style="margin-bottom:2rem">
+    <div class="dash-card-header"><h2>Upload New Document</h2></div>
+    <form method="POST" action="{{ url_for('patient.uploads') }}"
+          enctype="multipart/form-data" class="auth-form" id="uploadForm">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="title">Document Title *</label>
+          <div class="input-wrap">
+            <span class="input-icon">📄</span>
+            <input type="text" id="title" name="title" class="form-input"
+                   placeholder="e.g., CBC Blood Test — June 2026" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="file">File <span class="optional">(PDF, Image, DOC, TXT)</span></label>
+          <div class="input-wrap">
+            <span class="input-icon">📎</span>
+            <input type="file" id="file" name="file" class="form-input"
+                   accept=".pdf,.png,.jpg,.jpeg,.gif,.doc,.docx,.txt"
+                   style="padding-left:40px"/>
+          </div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label for="description">Description <span class="optional">(optional)</span></label>
+        <div class="input-wrap">
+          <textarea id="description" name="description" rows="2" maxlength="500"
+                    class="form-input form-textarea"
+                    placeholder="Brief notes about this document..."></textarea>
+        </div>
+      </div>
+      <div class="form-actions">
+        <button type="submit" class="btn btn-primary" id="uploadBtn">
+          📤 Upload Document
+        </button>
+        <p class="form-hint" style="margin:auto 0">Title and description are encrypted. Max file size: 16MB.</p>
+      </div>
+    </form>
+  </div>
+
+  <!-- Uploads List -->
+  {% if uploads %}
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <h2>Uploaded Documents</h2>
+        <span class="count-badge">{{ uploads | length }}</span>
+      </div>
+      <div class="uploads-list">
+        {% for up in uploads %}
+        <div class="upload-item">
+          <div class="upload-icon">
+            {% if up.file_type in ['PDF'] %}📄
+            {% elif up.file_type in ['PNG','JPG','JPEG','GIF'] %}🖼️
+            {% elif up.file_type in ['DOC','DOCX'] %}📝
+            {% else %}📎{% endif %}
+          </div>
+          <div class="upload-info">
+            <strong>{{ decrypt(up.title_enc) }}</strong>
+            {% if up.description_enc %}
+              <p class="activity-detail">{{ decrypt(up.description_enc) }}</p>
+            {% endif %}
+            <span class="activity-time">{{ up.created_at.strftime('%d %b %Y, %H:%M') }}
+              {% if up.file_type %} · {{ up.file_type }}{% endif %}
+            </span>
+          </div>
+          <div class="action-btns">
+            {% if up.file_path_enc %}
+            <a href="{{ url_for('patient.download_file', upload_id=up.id) }}" class="btn btn-outline btn-xs">⬇ Download</a>
+            {% endif %}
+            <form method="POST" action="{{ url_for('patient.delete_upload', upload_id=up.id) }}"
+                  onsubmit="return confirmAction('Delete this document?')">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <button type="submit" class="btn btn-danger btn-xs">🗑</button>
+            </form>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  {% else %}
+    <div class="empty-state"><span>📁</span><p>No documents uploaded yet. Use the form above to upload your first document.</p></div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.getElementById('uploadForm').addEventListener('submit', () => {
+  const btn = document.getElementById('uploadBtn');
+  btn.disabled = true; btn.textContent = 'Uploading...';
+});
+function confirmAction(msg) { return window.confirm(msg); }
+</script>
+{% endblock %}

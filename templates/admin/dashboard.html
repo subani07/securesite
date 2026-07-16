@@ -1,0 +1,118 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>⚙️ Admin Dashboard</h1>
+      <p>System overview and security monitoring</p>
+    </div>
+    <div class="page-header-right">
+      <span class="role-badge role-admin">ADMIN</span>
+    </div>
+  </div>
+
+  <!-- Admin Stats -->
+  <div class="stats-row stats-row-4">
+    <div class="stat-card stat-card-primary">
+      <div class="stat-card-icon">👥</div>
+      <div class="stat-card-info">
+        <span class="stat-card-num">{{ total_users }}</span>
+        <span class="stat-card-label">Total Users</span>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">🛡️</div>
+      <div class="stat-card-info">
+        <span class="stat-card-num">{{ admin_count }}</span>
+        <span class="stat-card-label">Admins</span>
+      </div>
+    </div>
+    <div class="stat-card {{ 'stat-card-warn' if locked_count > 0 else '' }}">
+      <div class="stat-card-icon">🔒</div>
+      <div class="stat-card-info">
+        <span class="stat-card-num">{{ locked_count }}</span>
+        <span class="stat-card-label">Locked Accounts</span>
+      </div>
+    </div>
+    <div class="stat-card {{ 'stat-card-danger' if failed_logins > 10 else '' }}">
+      <div class="stat-card-icon">⚠️</div>
+      <div class="stat-card-info">
+        <span class="stat-card-num">{{ failed_logins }}</span>
+        <span class="stat-card-label">Failed Logins</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Admin Quick Links -->
+  <div class="dashboard-grid" style="grid-template-columns: 1fr 1fr;">
+    <div class="dash-card">
+      <div class="dash-card-header"><h2>Admin Actions</h2></div>
+      <div class="quick-actions">
+        <a href="{{ url_for('admin.users') }}" class="quick-action">
+          <span class="qa-icon">👥</span><span>Manage Users</span>
+        </a>
+        <a href="{{ url_for('admin.logs') }}" class="quick-action">
+          <span class="qa-icon">📋</span><span>Security Logs</span>
+        </a>
+        <a href="{{ url_for('dashboard.security_settings') }}" class="quick-action">
+          <span class="qa-icon">🧪</span><span>Security Playground</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- Recent Login Logs -->
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <h2>Recent Login Attempts</h2>
+        <a href="{{ url_for('admin.logs') }}" class="card-link">View all →</a>
+      </div>
+      {% if recent_logs %}
+      <div class="activity-list">
+        {% for log in recent_logs %}
+        <div class="activity-item">
+          <span class="status-dot status-{{ log.status | lower }}"></span>
+          <div class="activity-info">
+            <span class="activity-action">{{ log.username_attempted }}</span>
+            <span class="activity-detail">{{ log.ip_address }}</span>
+          </div>
+          <span class="log-status-badge log-{{ log.status | lower }}">{{ log.status }}</span>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+        <div class="empty-state"><span>📭</span><p>No login attempts yet.</p></div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Recent Activity Feed -->
+  <div class="dash-card dash-card-wide">
+    <div class="dash-card-header">
+      <h2>Recent System Activity</h2>
+      <a href="{{ url_for('admin.logs') }}" class="card-link">Full log →</a>
+    </div>
+    {% if recent_activity %}
+    <table class="data-table">
+      <thead>
+        <tr><th>Time</th><th>User</th><th>Action</th><th>Details</th><th>IP</th></tr>
+      </thead>
+      <tbody>
+        {% for act in recent_activity %}
+        <tr>
+          <td class="mono">{{ act.timestamp.strftime('%H:%M:%S') }}</td>
+          <td>{{ act.user_id or '—' }}</td>
+          <td><span class="action-tag">{{ act.action }}</span></td>
+          <td class="detail-cell">{{ act.details or '—' }}</td>
+          <td class="mono">{{ act.ip_address }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+      <div class="empty-state"><span>📭</span><p>No activity recorded yet.</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

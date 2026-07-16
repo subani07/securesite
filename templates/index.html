@@ -1,0 +1,157 @@
+{% extends "base.html" %}
+{% block title %}HealthPlus — Secure Medical Platform{% endblock %}
+{% block content %}
+
+<!-- Hero -->
+<section class="hero">
+  <div class="hero-bg">
+    <div class="grid-overlay"></div>
+    <div class="orb orb-1"></div>
+    <div class="orb orb-2"></div>
+    <div class="orb orb-3"></div>
+  </div>
+  <div class="hero-content">
+    <div class="hero-badge"><span class="pulse-dot"></span>Secure Medical Platform</div>
+    <h1 class="hero-title">Healthcare That<br/><span class="gradient-text">Protects Your Data.</span></h1>
+    <p class="hero-subtitle">
+      A privacy-first medical platform where doctors manage patient records and patients access their health history — secured with <strong>AES-256-GCM encryption</strong>, <strong>JWT authentication</strong>, and full <strong>OWASP Top 10</strong> protections.
+    </p>
+    <div class="hero-actions">
+      {% if authenticated %}
+        {% if role == 'doctor' %}
+          <a href="{{ url_for('doctor.dashboard') }}" class="btn btn-primary btn-lg">Doctor Dashboard →</a>
+        {% elif role == 'patient' %}
+          <a href="{{ url_for('patient.dashboard') }}" class="btn btn-primary btn-lg">Patient Dashboard →</a>
+        {% elif role == 'admin' %}
+          <a href="{{ url_for('admin.dashboard') }}" class="btn btn-primary btn-lg">Admin Panel →</a>
+        {% endif %}
+      {% else %}
+        <a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-lg">Get Started</a>
+        <a href="{{ url_for('auth.login') }}" class="btn btn-ghost btn-lg">Sign In</a>
+      {% endif %}
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item"><span class="stat-num" data-count="256">0</span><span class="stat-label">Bit Encryption</span></div>
+      <div class="stat-sep">|</div>
+      <div class="stat-item"><span class="stat-num" data-count="10">0</span><span class="stat-label">OWASP Controls</span></div>
+      <div class="stat-sep">|</div>
+      <div class="stat-item"><span class="stat-num" data-count="3">0</span><span class="stat-label">User Roles</span></div>
+    </div>
+  </div>
+  <div class="hero-visual">
+    <div class="terminal-window">
+      <div class="terminal-header">
+        <span class="dot red"></span><span class="dot yellow"></span><span class="dot green"></span>
+        <span class="terminal-title">healthplus ~ records</span>
+      </div>
+      <div class="terminal-body">
+        <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd"> GET /api/profile [Bearer JWT]</span></div>
+        <div class="term-line term-out">{"role":"patient","name":"Alice Smith"}</div>
+        <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd"> decrypt(diagnosis_enc)</span></div>
+        <div class="term-line term-out">"Hypertension Stage 1"  [AES-256-GCM OK]</div>
+        <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd"> POST /doctor/patient/1/record</span></div>
+        <div class="term-line term-out">{"status":"saved","hmac":"verified"}</div>
+        <div class="term-line"><span class="term-prompt">$</span><span class="term-cmd typing" id="typingText"></span><span class="cursor">▌</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Features -->
+<section class="features-section">
+  <div class="section-container">
+    <div class="section-header">
+      <span class="section-tag">Platform Features</span>
+      <h2 class="section-title">Built for Doctors & Patients</h2>
+      <p class="section-sub">Role-based access ensures each user sees only what they need</p>
+    </div>
+    <div class="features-grid">
+      <div class="feature-card" data-delay="0">
+        <div class="feature-icon">🩺</div>
+        <h3>Doctor Dashboard</h3>
+        <p>View assigned patients, write encrypted medical records, manage prescriptions, and handle appointment requests.</p>
+        <div class="feature-tags"><span>ReBAC</span><span>Encryption</span><span>Records</span></div>
+      </div>
+      <div class="feature-card" data-delay="100">
+        <div class="feature-icon">🏥</div>
+        <h3>Patient Portal</h3>
+        <p>Patients view their encrypted medical records, upload documents like lab reports, and book appointments with their assigned doctor.</p>
+        <div class="feature-tags"><span>Records</span><span>Uploads</span><span>Appointments</span></div>
+      </div>
+      <div class="feature-card" data-delay="200">
+        <div class="feature-icon">🔐</div>
+        <h3>AES-256-GCM Encryption</h3>
+        <p>All medical data — diagnoses, notes, prescriptions — are encrypted at rest. Keys are separate from the database.</p>
+        <div class="feature-tags"><span>AES-256</span><span>GCM</span><span>At-Rest</span></div>
+      </div>
+      <div class="feature-card" data-delay="300">
+        <div class="feature-icon">🪙</div>
+        <h3>JWT API Security</h3>
+        <p>REST API endpoints protected by signed JWT tokens with expiry, refresh tokens, and role-based claims for programmatic access.</p>
+        <div class="feature-tags"><span>RFC 7519</span><span>Bearer</span><span>Refresh</span></div>
+      </div>
+      <div class="feature-card" data-delay="400">
+        <div class="feature-icon">📁</div>
+        <h3>Secure File Uploads</h3>
+        <p>Patients upload lab reports, scans and documents. Files are renamed, type-validated, size-limited and paths are encrypted.</p>
+        <div class="feature-tags"><span>Validation</span><span>Rename</span><span>Encrypted Path</span></div>
+      </div>
+      <div class="feature-card" data-delay="500">
+        <div class="feature-icon">📋</div>
+        <h3>Audit Trail</h3>
+        <p>Every record access, login attempt and file upload is logged with IP address and HMAC-signed for tamper detection.</p>
+        <div class="feature-tags"><span>HMAC</span><span>IP Logging</span><span>Activity Log</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Role Cards -->
+<section class="owasp-section">
+  <div class="section-container">
+    <div class="section-header">
+      <span class="section-tag">Who Uses HealthPlus</span>
+      <h2 class="section-title">Three Role System</h2>
+    </div>
+    <div class="owasp-grid">
+      <div class="owasp-item">
+        <span class="owasp-code">👤</span>
+        <div class="owasp-info"><strong>Patient</strong><p>View encrypted medical records · Upload documents · Book appointments · Download files</p></div>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-outline btn-sm">Register as Patient</a>
+      </div>
+      <div class="owasp-item">
+        <span class="owasp-code">🩺</span>
+        <div class="owasp-info"><strong>Doctor</strong><p>Manage assigned patients · Write encrypted records · Prescribe medications · Handle appointments</p></div>
+        <a href="{{ url_for('auth.register') }}" class="btn btn-outline btn-sm">Register as Doctor</a>
+      </div>
+      <div class="owasp-item">
+        <span class="owasp-code">⚙️</span>
+        <div class="owasp-info"><strong>Admin</strong><p>Manage all users · Assign doctors to patients · View security logs · Monitor activity</p></div>
+        <span class="text-muted" style="font-size:0.82rem">Admin accounts managed internally</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section class="cta-section">
+  <div class="section-container">
+    <div class="cta-card">
+      <div class="cta-orbs"><div class="cta-orb cta-orb-1"></div><div class="cta-orb cta-orb-2"></div></div>
+      <h2>Explore the Platform</h2>
+      <p>Use the demo accounts to explore all three roles and the full security feature set.</p>
+      <div class="cta-actions">
+        {% if authenticated %}
+          {% if role == 'doctor' %}<a href="{{ url_for('doctor.dashboard') }}" class="btn btn-primary btn-lg">Doctor Dashboard</a>
+          {% elif role == 'patient' %}<a href="{{ url_for('patient.dashboard') }}" class="btn btn-primary btn-lg">Patient Portal</a>
+          {% else %}<a href="{{ url_for('admin.dashboard') }}" class="btn btn-primary btn-lg">Admin Panel</a>{% endif %}
+        {% else %}
+          <a href="{{ url_for('auth.login') }}" class="btn btn-primary btn-lg">Login</a>
+          <a href="{{ url_for('auth.register') }}" class="btn btn-ghost btn-lg">Register</a>
+        {% endif %}
+      </div>
+      <div class="cta-hint">Demo: <code>dr_johnson / Doctor@123</code> · <code>alice / Patient@123</code> · <code>admin / Admin@1234</code></div>
+    </div>
+  </div>
+</section>
+{% endblock %}

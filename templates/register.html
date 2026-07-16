@@ -1,0 +1,208 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="auth-page">
+  <div class="auth-visual">
+    <div class="auth-visual-orb"></div>
+    <div class="auth-visual-content">
+      <div class="shield-icon">⊕</div>
+      <h2>Join HealthPlus</h2>
+      <ul class="auth-features-list">
+        <li>✓ Register as Doctor or Patient</li>
+        <li>✓ Encrypted medical records</li>
+        <li>✓ Secure file uploads</li>
+        <li>✓ Appointment management</li>
+        <li>✓ No plaintext data stored</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="auth-card-wrap">
+    <div class="auth-card" style="max-width:520px">
+      <div class="auth-header">
+        <a href="{{ url_for('index') }}" class="auth-logo">⊕ Health<span class="accent">Plus</span></a>
+        <h1>Create Account</h1>
+        <p>Choose your role to get started</p>
+      </div>
+
+      <!-- Role Selector -->
+      <div class="role-selector" id="roleSelector">
+        <button type="button" class="role-btn active" onclick="setRole('patient')" id="rolePatientBtn">
+          <span>👤</span> Patient
+        </button>
+        <button type="button" class="role-btn" onclick="setRole('doctor')" id="roleDoctorBtn">
+          <span>🩺</span> Doctor
+        </button>
+      </div>
+
+      <form method="POST" action="{{ url_for('auth.register') }}" class="auth-form" id="registerForm" novalidate>
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <input type="hidden" name="role" id="roleInput" value="{{ role or 'patient' }}"/>
+
+        <!-- Common Fields -->
+        <div class="form-row">
+          <div class="form-group">
+            <label for="name">Full Name *</label>
+            <div class="input-wrap">
+              <span class="input-icon">🙍</span>
+              <input type="text" id="name" name="name" value="{{ name or '' }}"
+                     placeholder="Full Name" required class="form-input"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="username">Username *</label>
+            <div class="input-wrap">
+              <span class="input-icon">@</span>
+              <input type="text" id="username" name="username" value="{{ username or '' }}"
+                     placeholder="username" required minlength="3" class="form-input"/>
+            </div>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email *</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉</span>
+            <input type="email" id="email" name="email" value="{{ email or '' }}"
+                   placeholder="you@example.com" required class="form-input"/>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="password">Password *</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔑</span>
+            <input type="password" id="password" name="password" required class="form-input"
+                   placeholder="Strong password" autocomplete="new-password"
+                   oninput="checkPasswordStrength(this.value)"/>
+            <button type="button" class="toggle-pw" onclick="togglePassword('password')">👁</button>
+          </div>
+          <div class="strength-meter">
+            <div class="strength-bar"><div class="strength-fill" id="strengthFill"></div></div>
+            <span class="strength-label" id="strengthLabel">Enter a password</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="confirm_password">Confirm Password *</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔒</span>
+            <input type="password" id="confirm_password" name="confirm_password" required class="form-input"
+                   placeholder="Repeat password" autocomplete="new-password" oninput="checkPasswordMatch()"/>
+          </div>
+          <span class="match-hint" id="matchHint"></span>
+        </div>
+
+        <!-- Patient Extra Fields -->
+        <div id="patientFields">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="dob">Date of Birth</label>
+              <div class="input-wrap">
+                <span class="input-icon">📅</span>
+                <input type="date" id="dob" name="dob" class="form-input"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="gender">Gender</label>
+              <div class="input-wrap">
+                <span class="input-icon">👤</span>
+                <select id="gender" name="gender" class="form-input">
+                  <option value="">Select...</option>
+                  <option>Male</option><option>Female</option><option>Non-binary</option><option>Prefer not to say</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="blood_group">Blood Group</label>
+              <div class="input-wrap">
+                <span class="input-icon">🩸</span>
+                <select id="blood_group" name="blood_group" class="form-input">
+                  <option value="">Unknown</option>
+                  {% for bg in ['A+','A-','B+','B-','AB+','AB-','O+','O-'] %}
+                    <option>{{ bg }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="doctor_id">Preferred Doctor <span class="optional">(optional)</span></label>
+              <div class="input-wrap">
+                <span class="input-icon">🩺</span>
+                <select id="doctor_id" name="doctor_id" class="form-input">
+                  <option value="">No preference</option>
+                  {% for doc in doctors %}
+                    <option value="{{ doc.id }}">{{ doc.name }}</option>
+                  {% endfor %}
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Doctor Extra Fields -->
+        <div id="doctorFields" style="display:none">
+          <div class="form-row">
+            <div class="form-group">
+              <label for="specialty">Specialty *</label>
+              <div class="input-wrap">
+                <span class="input-icon">🔬</span>
+                <input type="text" id="specialty" name="specialty" class="form-input"
+                       placeholder="e.g., Cardiology"/>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="department">Department</label>
+              <div class="input-wrap">
+                <span class="input-icon">🏥</span>
+                <input type="text" id="department" name="department" class="form-input"
+                       placeholder="e.g., Heart & Vascular"/>
+              </div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="license_no">Medical License No.</label>
+            <div class="input-wrap">
+              <span class="input-icon">📜</span>
+              <input type="text" id="license_no" name="license_no" class="form-input"
+                     placeholder="e.g., MCI-12345"/>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-full" id="registerBtn">Create Account →</button>
+      </form>
+
+      <div class="auth-divider"><span>or</span></div>
+      <a href="{{ url_for('auth.oauth_login') }}" class="btn btn-oauth btn-full">
+        <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+          <path fill="#FFC107" d="M43.6 20.1H42V20H24v8h11.3C33.7 32.7 29.2 36 24 36c-6.6 0-12-5.4-12-12s5.4-12 12-12c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.5 6.5 29.5 4 24 4 12.9 4 4 12.9 4 24s8.9 20 20 20 20-8.9 20-20c0-1.3-.1-2.6-.4-3.9z"/>
+          <path fill="#FF3D00" d="M6.3 14.7l6.6 4.8C14.6 16 19 13 24 13c3.1 0 5.8 1.2 7.9 3.1l5.7-5.7C34.5 6.5 29.5 4 24 4 16.3 4 9.6 8.3 6.3 14.7z"/>
+          <path fill="#4CAF50" d="M24 44c5.2 0 9.9-2 13.4-5.2l-6.2-5.2C29.3 35.4 26.8 36 24 36c-5.2 0-9.6-3.3-11.3-8H5.9C9.3 35.7 16.1 44 24 44z"/>
+          <path fill="#1976D2" d="M43.6 20.1H42V20H24v8h11.3c-.8 2.3-2.3 4.2-4.3 5.6l6.2 5.2C37 39 44 34 44 24c0-1.3-.1-2.6-.4-3.9z"/>
+        </svg>
+        Continue with Google
+      </a>
+      <p class="auth-switch">Already have an account? <a href="{{ url_for('auth.login') }}" class="form-link">Sign in →</a></p>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+<script>
+const savedRole = '{{ role or "patient" }}';
+if (savedRole === 'doctor') { setRole('doctor'); }
+
+function setRole(role) {
+  document.getElementById('roleInput').value = role;
+  document.getElementById('patientFields').style.display = role === 'patient' ? '' : 'none';
+  document.getElementById('doctorFields').style.display  = role === 'doctor'  ? '' : 'none';
+  document.getElementById('rolePatientBtn').classList.toggle('active', role === 'patient');
+  document.getElementById('roleDoctorBtn').classList.toggle('active', role === 'doctor');
+}
+</script>
+{% endblock %}

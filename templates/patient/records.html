@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}My Medical Records{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>📋 Medical Records</h1>
+      <p>Your encrypted health history — only you and your doctor can view these</p>
+    </div>
+    <a href="{{ url_for('patient.dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
+  </div>
+
+  {% if records %}
+    <div class="records-timeline">
+      {% for rec in records %}
+      <div class="record-card">
+        <div class="record-card-header">
+          <div class="record-date-badge">
+            <span class="rd-day">{{ rec.created_at.strftime('%d') }}</span>
+            <span class="rd-mon">{{ rec.created_at.strftime('%b %Y') }}</span>
+          </div>
+          <div class="record-card-title">
+            <h3>{{ decrypt(rec.diagnosis_enc) }}</h3>
+            <p class="record-doctor">Written by: <strong>{{ rec.doctor.name if rec.doctor else 'Unknown' }}</strong></p>
+          </div>
+          <div class="record-enc-badge">
+            <span class="badge">🔒 AES-256-GCM</span>
+          </div>
+        </div>
+        <div class="record-card-body">
+          {% if rec.notes_enc %}
+          <div class="record-section">
+            <span class="record-section-label">📝 Clinical Notes</span>
+            <p class="record-section-text">{{ decrypt(rec.notes_enc) }}</p>
+          </div>
+          {% endif %}
+          {% if rec.prescription_enc %}
+          <div class="record-section">
+            <span class="record-section-label">💊 Prescription</span>
+            <p class="record-section-text prescription-text">{{ decrypt(rec.prescription_enc) }}</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state" style="margin-top:4rem">
+      <span>📋</span>
+      <p>No medical records yet. Your doctor will add records after consultations.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}My Patients{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>👥 My Patients</h1>
+      <p>All patients assigned to you</p>
+    </div>
+    <a href="{{ url_for('doctor.dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
+  </div>
+
+  {% if patients %}
+    <div class="patients-grid">
+      {% for pp in patients %}
+      <div class="patient-card">
+        <div class="patient-card-header">
+          <div class="avatar-placeholder" style="width:52px;height:52px;font-size:1.3rem;flex-shrink:0">
+            {{ pp.user.name[0] }}
+          </div>
+          <div>
+            <strong>{{ pp.user.name }}</strong>
+            <p style="font-size:0.8rem;color:var(--text-muted)">@{{ pp.user.username }}</p>
+          </div>
+        </div>
+        <div class="patient-card-details">
+          <div class="sec-info-row"><span class="sec-key">D.O.B</span><span class="sec-val">{{ pp.dob or '—' }}</span></div>
+          <div class="sec-info-row"><span class="sec-key">Gender</span><span class="sec-val">{{ pp.gender or '—' }}</span></div>
+          <div class="sec-info-row">
+            <span class="sec-key">Blood Group</span>
+            <span class="sec-val" style="color:var(--red-accent)">{{ pp.blood_group or '—' }}</span>
+          </div>
+          <div class="sec-info-row">
+            <span class="sec-key">Allergies</span>
+            <span class="sec-val {{ 'val-warn' if pp.allergies and pp.allergies != 'None known' }}">
+              {{ pp.allergies or 'None known' }}
+            </span>
+          </div>
+          <div class="sec-info-row">
+            <span class="sec-key">Records</span>
+            <span class="sec-val val-ok">{{ pp.medical_records.count() }}</span>
+          </div>
+        </div>
+        <a href="{{ url_for('doctor.patient_record', patient_profile_id=pp.id) }}"
+           class="btn btn-primary btn-full" style="margin-top:1rem">
+          📋 View / Add Records →
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="empty-state" style="margin-top:4rem">
+      <span>👥</span>
+      <p>No patients assigned to you yet. Contact the administrator to assign patients.</p>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}

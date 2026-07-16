@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Patient Record — {{ profile.user.name }}{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>📋 {{ profile.user.name }}</h1>
+      <p>Medical records and patient documents</p>
+    </div>
+    <a href="{{ url_for('doctor.patients') }}" class="btn btn-ghost btn-sm">← My Patients</a>
+  </div>
+
+  <!-- Patient Info Strip -->
+  <div class="patient-info-strip">
+    <div class="pis-item"><span class="pis-label">D.O.B</span><span class="pis-val">{{ profile.dob or '—' }}</span></div>
+    <div class="pis-sep">|</div>
+    <div class="pis-item"><span class="pis-label">Gender</span><span class="pis-val">{{ profile.gender or '—' }}</span></div>
+    <div class="pis-sep">|</div>
+    <div class="pis-item"><span class="pis-label">Blood Group</span><span class="pis-val" style="color:var(--red-accent)">{{ profile.blood_group or '—' }}</span></div>
+    <div class="pis-sep">|</div>
+    <div class="pis-item"><span class="pis-label">Allergies</span><span class="pis-val {{ 'val-warn' if profile.allergies and profile.allergies != 'None known' }}">{{ profile.allergies or 'None known' }}</span></div>
+    <div class="pis-sep">|</div>
+    <div class="pis-item"><span class="pis-label">Email</span><span class="pis-val mono">{{ profile.user.email }}</span></div>
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- Add New Record Form -->
+    <div class="dash-card">
+      <div class="dash-card-header"><h2>✏️ Add Medical Record</h2></div>
+      <form method="POST" action="{{ url_for('doctor.patient_record', patient_profile_id=profile.id) }}"
+            class="auth-form">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="form-group">
+          <label for="diagnosis">Diagnosis *</label>
+          <div class="input-wrap">
+            <span class="input-icon">🔬</span>
+            <input type="text" id="diagnosis" name="diagnosis" class="form-input"
+                   placeholder="e.g., Hypertension Stage 1" required/>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="notes">Clinical Notes</label>
+          <div class="input-wrap">
+            <textarea id="notes" name="notes" rows="3" class="form-input form-textarea"
+                      placeholder="Symptoms, observations, examination findings..."></textarea>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="prescription">Prescription</label>
+          <div class="input-wrap">
+            <textarea id="prescription" name="prescription" rows="3" class="form-input form-textarea"
+                      placeholder="Medications, dosage, instructions..."></textarea>
+          </div>
+        </div>
+        <div class="info-box" style="margin-bottom:0.75rem">
+          <span>🔒</span> All fields are encrypted with AES-256-GCM before saving.
+        </div>
+        <button type="submit" class="btn btn-primary btn-full">💾 Save Encrypted Record</button>
+      </form>
+    </div>
+
+    <!-- Patient Uploads -->
+    <div class="dash-card">
+      <div class="dash-card-header">
+        <h2>📁 Patient Documents</h2>
+        <span class="count-badge">{{ uploads | length }}</span>
+      </div>
+      {% if uploads %}
+        <div class="uploads-list">
+          {% for up in uploads %}
+          <div class="upload-item">
+            <div class="upload-icon">
+              {% if up.file_type == 'PDF' %}📄
+              {% elif up.file_type in ['PNG','JPG','JPEG','GIF'] %}🖼️
+              {% else %}📎{% endif %}
+            </div>
+            <div class="upload-info">
+              <strong>{{ decrypt(up.title_enc) }}</strong>
+              {% if up.description_enc %}<p class="activity-detail">{{ decrypt(up.description_enc) }}</p>{% endif %}
+              <span class="activity-time">{{ up.created_at.strftime('%d %b %Y') }}{% if up.file_type %} · {{ up.file_type }}{% endif %}</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state"><span>📁</span><p>No documents uploaded by patient yet.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- Records Timeline -->
+    <div class="dash-card dash-card-wide">
+      <div class="dash-card-header">
+        <h2>📋 Medical Record History</h2>
+        <span class="count-badge">{{ records | length }}</span>
+      </div>
+      {% if records %}
+        <div class="records-timeline">
+          {% for rec in records %}
+          <div class="record-card">
+            <div class="record-card-header">
+              <div class="record-date-badge">
+                <span class="rd-day">{{ rec.created_at.strftime('%d') }}</span>
+                <span class="rd-mon">{{ rec.created_at.strftime('%b %Y') }}</span>
+              </div>
+              <div class="record-card-title">
+                <h3>{{ decrypt(rec.diagnosis_enc) }}</h3>
+                <p class="record-doctor">By: <strong>Dr. {{ rec.doctor.name if rec.doctor else 'Unknown' }}</strong></p>
+              </div>
+              <span class="badge">🔒 AES-256-GCM</span>
+            </div>
+            <div class="record-card-body">
+              {% if rec.notes_enc %}
+              <div class="record-section">
+                <span class="record-section-label">📝 Clinical Notes</span>
+                <p class="record-section-text">{{ decrypt(rec.notes_enc) }}</p>
+              </div>
+              {% endif %}
+              {% if rec.prescription_enc %}
+              <div class="record-section">
+                <span class="record-section-label">💊 Prescription</span>
+                <p class="record-section-text prescription-text">{{ decrypt(rec.prescription_enc) }}</p>
+              </div>
+              {% endif %}
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      {% else %}
+        <div class="empty-state"><span>📋</span><p>No records yet. Use the form above to add the first record.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

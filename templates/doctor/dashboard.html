@@ -1,0 +1,134 @@
+{% extends "base.html" %}
+{% block title %}Doctor Dashboard{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>🩺 Dr. {{ user.name }}</h1>
+      {% if doc_profile %}<p>{{ doc_profile.specialty }} · {{ doc_profile.department or '' }}</p>{% endif %}
+    </div>
+    <div class="page-header-right">
+      <span class="role-badge role-doctor">DOCTOR</span>
+      {% if user.last_login %}<span class="last-login">Last login: {{ user.last_login.strftime('%d %b %Y, %H:%M') }}</span>{% endif %}
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="stats-row">
+    <div class="stat-card stat-card-primary">
+      <div class="stat-card-icon">👥</div>
+      <div class="stat-card-info"><span class="stat-card-num">{{ patients | length }}</span><span class="stat-card-label">Assigned Patients</span></div>
+    </div>
+    <div class="stat-card {{ 'stat-card-warn' if pending_appts | length > 0 }}">
+      <div class="stat-card-icon">⏳</div>
+      <div class="stat-card-info"><span class="stat-card-num">{{ pending_appts | length }}</span><span class="stat-card-label">Pending Appointments</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">✅</div>
+      <div class="stat-card-info"><span class="stat-card-num">{{ confirmed_appts | length }}</span><span class="stat-card-label">Confirmed Today</span></div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-card-icon">📋</div>
+      <div class="stat-card-info"><span class="stat-card-num">{{ total_records }}</span><span class="stat-card-label">Records Created</span></div>
+    </div>
+  </div>
+
+  <div class="dashboard-grid">
+    <!-- Doctor Profile -->
+    <div class="dash-card">
+      <div class="dash-card-header"><h2>My Profile</h2></div>
+      {% if doc_profile %}
+      <div class="security-info-list">
+        <div class="sec-info-row"><span class="sec-key">Specialty</span><span class="sec-val val-ok">{{ doc_profile.specialty }}</span></div>
+        <div class="sec-info-row"><span class="sec-key">Department</span><span class="sec-val">{{ doc_profile.department or '—' }}</span></div>
+        <div class="sec-info-row"><span class="sec-key">License No.</span><span class="sec-val mono">{{ doc_profile.license_no or '—' }}</span></div>
+        <div class="sec-info-row"><span class="sec-key">Experience</span><span class="sec-val">{{ doc_profile.years_experience }} years</span></div>
+        <div class="sec-info-row"><span class="sec-key">Availability</span>
+          <span class="sec-val {{ 'val-ok' if doc_profile.available else 'val-bad' }}">
+            {{ 'Available' if doc_profile.available else 'Unavailable' }}
+          </span>
+        </div>
+      </div>
+      {% else %}<div class="empty-state"><span>🩺</span><p>Profile not set up.</p></div>{% endif %}
+    </div>
+
+    <!-- Quick Actions -->
+    <div class="dash-card">
+      <div class="dash-card-header"><h2>Quick Actions</h2></div>
+      <div class="quick-actions">
+        <a href="{{ url_for('doctor.patients') }}" class="quick-action"><span class="qa-icon">👥</span><span>My Patients</span></a>
+        <a href="{{ url_for('doctor.appointments') }}" class="quick-action"><span class="qa-icon">📅</span><span>Appointments</span></a>
+        <a href="{{ url_for('doctor.appointments') }}?status=pending" class="quick-action"><span class="qa-icon">⏳</span><span>Pending Requests</span></a>
+        <a href="{{ url_for('dashboard.security_settings') }}" class="quick-action"><span class="qa-icon">🔑</span><span>Security</span></a>
+      </div>
+    </div>
+
+    <!-- Patient List Preview -->
+    <div class="dash-card dash-card-wide">
+      <div class="dash-card-header">
+        <h2>👥 My Patients</h2>
+        <a href="{{ url_for('doctor.patients') }}" class="card-link">View all →</a>
+      </div>
+      {% if patients %}
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>Patient</th><th>D.O.B</th><th>Blood Group</th><th>Allergies</th><th>Action</th></tr></thead>
+            <tbody>
+            {% for pp in patients[:5] %}
+              <tr>
+                <td>
+                  <div class="user-cell">
+                    <div class="mini-avatar">{{ pp.user.name[0] }}</div>
+                    <div><strong>{{ pp.user.name }}</strong><span class="mono text-muted"> @{{ pp.user.username }}</span></div>
+                  </div>
+                </td>
+                <td class="mono">{{ pp.dob or '—' }}</td>
+                <td><span class="badge" style="background:rgba(255,77,109,0.1);color:var(--red-accent)">{{ pp.blood_group or '—' }}</span></td>
+                <td class="detail-cell {{ 'val-warn' if pp.allergies and pp.allergies != 'None known' }}">{{ pp.allergies or '—' }}</td>
+                <td><a href="{{ url_for('doctor.patient_record', patient_profile_id=pp.id) }}" class="btn btn-outline btn-xs">View Record</a></td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state"><span>👥</span><p>No patients assigned yet.</p></div>
+      {% endif %}
+    </div>
+
+    <!-- Pending Appointments -->
+    <div class="dash-card dash-card-wide">
+      <div class="dash-card-header">
+        <h2>⏳ Pending Appointment Requests</h2>
+        <a href="{{ url_for('doctor.appointments') }}" class="card-link">All appointments →</a>
+      </div>
+      {% if pending_appts %}
+        <div class="table-scroll">
+          <table class="data-table">
+            <thead><tr><th>Patient</th><th>Date</th><th>Time</th><th>Reason</th><th>Action</th></tr></thead>
+            <tbody>
+            {% for appt in pending_appts %}
+              <tr>
+                <td><strong>{{ appt.patient.user.name }}</strong></td>
+                <td class="mono">{{ appt.scheduled_date }}</td>
+                <td class="mono">{{ appt.scheduled_time }}</td>
+                <td class="detail-cell">{{ appt.reason or '—' }}</td>
+                <td>
+                  <form method="POST" action="{{ url_for('doctor.update_appointment', appt_id=appt.id) }}">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="status" value="confirmed"/>
+                    <button type="submit" class="btn btn-primary btn-xs">Confirm</button>
+                  </form>
+                </td>
+              </tr>
+            {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      {% else %}
+        <div class="empty-state"><span>✅</span><p>No pending appointment requests.</p></div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+{% endblock %}

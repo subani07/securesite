@@ -1,0 +1,129 @@
+{% extends "base.html" %}
+{% block title %}Profile{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>My Profile</h1>
+      <p>Manage your account details and profile picture</p>
+    </div>
+  </div>
+
+  <div class="profile-page-grid">
+    <!-- Avatar Card -->
+    <div class="dash-card profile-avatar-card">
+      <div class="avatar-upload-area" id="avatarArea">
+        {% if user.profile_picture and not user.profile_picture.startswith('http') %}
+          <img src="{{ url_for('static', filename='uploads/' + user.profile_picture) }}" alt="Profile" id="avatarPreview" class="avatar-img-lg"/>
+        {% elif user.profile_picture and user.profile_picture.startswith('http') %}
+          <img src="{{ user.profile_picture }}" alt="Profile" id="avatarPreview" class="avatar-img-lg"/>
+        {% else %}
+          <div class="avatar-placeholder-lg" id="avatarPlaceholder">{{ user.name[0] | upper }}</div>
+          <img id="avatarPreview" class="avatar-img-lg" style="display:none"/>
+        {% endif %}
+      </div>
+      <div class="avatar-actions">
+        <label for="profile_picture" class="btn btn-outline btn-sm" style="cursor:pointer">
+          📸 Change Photo
+        </label>
+        <p class="avatar-hint">JPG, PNG, GIF · Max 2MB</p>
+      </div>
+      <div class="account-badges">
+        <span class="role-badge role-{{ user.role }}">{{ user.role | upper }}</span>
+        {% if user.oauth_provider %}
+          <span class="oauth-badge">{{ user.oauth_provider | capitalize }} Account</span>
+        {% endif %}
+        {% if user.is_locked %}
+          <span class="badge-locked">🔒 Locked</span>
+        {% else %}
+          <span class="badge-active">✓ Active</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Edit Form -->
+    <div class="dash-card profile-form-card">
+      <div class="dash-card-header"><h2>Account Details</h2></div>
+      <form method="POST" action="{{ url_for('dashboard.profile') }}"
+            class="auth-form" enctype="multipart/form-data" id="profileForm">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <input type="file" id="profile_picture" name="profile_picture"
+               accept="image/*" style="display:none" onchange="previewAvatar(this)"/>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label for="name">Full Name</label>
+            <div class="input-wrap">
+              <span class="input-icon">🙍</span>
+              <input type="text" id="name" name="name" value="{{ user.name }}"
+                     required class="form-input"/>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>Username</label>
+            <div class="input-wrap">
+              <span class="input-icon">@</span>
+              <input type="text" value="{{ user.username }}" disabled class="form-input input-disabled"/>
+            </div>
+            <span class="form-hint">Username cannot be changed</span>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="email">Email Address</label>
+          <div class="input-wrap">
+            <span class="input-icon">✉</span>
+            <input type="email" id="email" name="email" value="{{ user.email }}"
+                   required class="form-input"
+                   {% if user.oauth_provider %}readonly title="Email managed by OAuth provider"{% endif %}/>
+          </div>
+          {% if user.oauth_provider %}
+            <span class="form-hint">Email is managed by your {{ user.oauth_provider | capitalize }} account.</span>
+          {% endif %}
+        </div>
+
+        <div class="form-group">
+          <label for="bio">Bio <span class="optional">(optional)</span></label>
+          <div class="input-wrap">
+            <textarea id="bio" name="bio" rows="3" maxlength="500"
+                      placeholder="Tell us a bit about yourself..."
+                      class="form-input form-textarea">{{ user.bio or '' }}</textarea>
+          </div>
+          <span class="form-hint char-count" id="bioCount">{{ (user.bio or '') | length }}/500</span>
+        </div>
+
+        <div class="form-actions">
+          <button type="submit" class="btn btn-primary">Save Changes</button>
+          <a href="{{ url_for('dashboard.home') }}" class="btn btn-ghost">Cancel</a>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function previewAvatar(input) {
+  if (input.files && input.files[0]) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const preview = document.getElementById('avatarPreview');
+      const placeholder = document.getElementById('avatarPlaceholder');
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      if (placeholder) placeholder.style.display = 'none';
+    };
+    reader.readAsDataURL(input.files[0]);
+  }
+}
+const bio = document.getElementById('bio');
+const bioCount = document.getElementById('bioCount');
+if (bio && bioCount) {
+  bio.addEventListener('input', () => {
+    bioCount.textContent = `${bio.value.length}/500`;
+  });
+}
+</script>
+{% endblock %}

@@ -1,0 +1,126 @@
+{% extends "base.html" %}
+{% block title %}Manage Users{% endblock %}
+
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>👥 User Management</h1>
+      <p>Search, manage roles, and control account access</p>
+    </div>
+    <a href="{{ url_for('admin.dashboard') }}" class="btn btn-ghost btn-sm">← Admin Home</a>
+  </div>
+
+  <!-- Search Bar -->
+  <form method="GET" action="{{ url_for('admin.users') }}" class="search-bar-form">
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" name="q" value="{{ search }}" placeholder="Search by name, username or email..."
+             class="form-input search-input" id="userSearch"/>
+      <button type="submit" class="btn btn-primary btn-sm">Search</button>
+      {% if search %}
+        <a href="{{ url_for('admin.users') }}" class="btn btn-ghost btn-sm">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+
+  <!-- Users Table -->
+  <div class="dash-card" style="margin-top:1.5rem">
+    <div class="dash-card-header">
+      <h2>All Users <span class="count-badge">{{ users | length }}</span></h2>
+    </div>
+    {% if users %}
+    <div class="table-scroll">
+      <table class="data-table" id="usersTable">
+        <thead>
+          <tr>
+            <th>ID</th>
+            <th>User</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Status</th>
+            <th>Auth</th>
+            <th>Joined</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr id="user-row-{{ u.id }}">
+            <td class="mono">{{ u.id }}</td>
+            <td>
+              <div class="user-cell">
+                <div class="mini-avatar">{{ u.name[0] | upper }}</div>
+                <div>
+                  <strong>{{ u.name }}</strong>
+                  <span class="mono text-muted">@{{ u.username }}</span>
+                </div>
+              </div>
+            </td>
+            <td class="mono">{{ u.email }}</td>
+            <td>
+              <span class="role-badge role-{{ u.role }}">{{ u.role | upper }}</span>
+            </td>
+            <td>
+              {% if u.is_locked %}
+                <span class="badge-locked">🔒 Locked</span>
+              {% elif not u.is_active %}
+                <span class="badge-inactive">Inactive</span>
+              {% else %}
+                <span class="badge-active">✓ Active</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.oauth_provider %}
+                <span class="oauth-badge-sm">{{ u.oauth_provider | capitalize }}</span>
+              {% else %}
+                <span class="text-muted">Password</span>
+              {% endif %}
+            </td>
+            <td class="text-muted">{{ u.created_at.strftime('%d %b %Y') }}</td>
+            <td>
+              <div class="action-btns">
+                <!-- Change Role -->
+                <form method="POST" action="{{ url_for('admin.change_role', user_id=u.id) }}"
+                      style="display:inline" onsubmit="return confirmAction('Change role for {{ u.username }}?')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <select name="role" class="role-select" onchange="this.form.submit()" title="Change role">
+                    <option value="user" {{ 'selected' if u.role == 'user' }}>User</option>
+                    <option value="admin" {{ 'selected' if u.role == 'admin' }}>Admin</option>
+                  </select>
+                </form>
+
+                <!-- Unlock -->
+                {% if u.is_locked %}
+                <form method="POST" action="{{ url_for('admin.unlock_user', user_id=u.id) }}" style="display:inline">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button type="submit" class="btn btn-outline btn-xs" title="Unlock account">🔓</button>
+                </form>
+                {% endif %}
+
+                <!-- Delete -->
+                <form method="POST" action="{{ url_for('admin.delete_user', user_id=u.id) }}"
+                      style="display:inline" onsubmit="return confirmAction('Delete user {{ u.username }}? This cannot be undone.')">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <button type="submit" class="btn btn-danger btn-xs" title="Delete user">🗑</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% else %}
+      <div class="empty-state">
+        <span>🔍</span>
+        <p>No users found{% if search %} for "{{ search }}"{% endif %}.</p>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script src="{{ url_for('static', filename='js/admin.js') }}"></script>
+{% endblock %}

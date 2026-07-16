@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Appointments{% endblock %}
+{% block content %}
+<div class="page-wrap">
+  <div class="page-header">
+    <div class="page-header-left">
+      <h1>📅 Appointment Management</h1>
+      <p>Review and manage patient appointment requests</p>
+    </div>
+    <a href="{{ url_for('doctor.dashboard') }}" class="btn btn-ghost btn-sm">← Dashboard</a>
+  </div>
+
+  <!-- Filter Tabs -->
+  <div class="playground-tabs" style="margin-bottom:1.5rem">
+    <a href="{{ url_for('doctor.appointments') }}" class="tab-btn {{ 'active' if not status_filter }}">All</a>
+    <a href="{{ url_for('doctor.appointments', status='pending') }}" class="tab-btn log-failed {{ 'active' if status_filter == 'pending' }}">Pending</a>
+    <a href="{{ url_for('doctor.appointments', status='confirmed') }}" class="tab-btn log-success {{ 'active' if status_filter == 'confirmed' }}">Confirmed</a>
+    <a href="{{ url_for('doctor.appointments', status='completed') }}" class="tab-btn {{ 'active' if status_filter == 'completed' }}">Completed</a>
+    <a href="{{ url_for('doctor.appointments', status='cancelled') }}" class="tab-btn log-failed {{ 'active' if status_filter == 'cancelled' }}">Cancelled</a>
+  </div>
+
+  <div class="dash-card">
+    {% if appointments %}
+      <div class="table-scroll">
+        <table class="data-table">
+          <thead>
+            <tr><th>Patient</th><th>Date</th><th>Time</th><th>Reason</th><th>Status</th><th>Update</th></tr>
+          </thead>
+          <tbody>
+          {% for appt in appointments %}
+            <tr>
+              <td>
+                <div class="user-cell">
+                  <div class="mini-avatar">{{ appt.patient.user.name[0] }}</div>
+                  <strong>{{ appt.patient.user.name }}</strong>
+                </div>
+              </td>
+              <td class="mono">{{ appt.scheduled_date }}</td>
+              <td class="mono">{{ appt.scheduled_time }}</td>
+              <td class="detail-cell">{{ appt.reason or '—' }}</td>
+              <td><span class="log-status-badge log-{{ appt.status }}">{{ appt.status | upper }}</span></td>
+              <td>
+                {% if appt.status not in ('completed', 'cancelled') %}
+                <form method="POST" action="{{ url_for('doctor.update_appointment', appt_id=appt.id) }}">
+                  <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                  <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+                    <select name="status" class="role-select">
+                      <option value="confirmed" {{ 'selected' if appt.status == 'confirmed' }}>Confirm</option>
+                      <option value="completed">Complete</option>
+                      <option value="cancelled">Cancel</option>
+                    </select>
+                    <input type="text" name="doctor_notes" placeholder="Add note..." class="form-input"
+                           style="padding:5px 10px;font-size:0.8rem;width:140px" value="{{ appt.doctor_notes or '' }}"/>
+                    <button type="submit" class="btn btn-primary btn-xs">Save</button>
+                  </div>
+                </form>
+                {% else %}
+                  <span class="text-muted">—</span>
+                  {% if appt.doctor_notes %}<p class="activity-detail" style="margin-top:4px">{{ appt.doctor_notes }}</p>{% endif %}
+                {% endif %}
+              </td>
+            </tr>
+          {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% else %}
+      <div class="empty-state"><span>📅</span><p>No appointments found.</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
